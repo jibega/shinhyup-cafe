@@ -42,7 +42,21 @@ export default function App() {
   useEffect(() => {
     const savedOrders = localStorage.getItem('shinhyup_orders');
     if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
+      const parsedOrders: Order[] = JSON.parse(savedOrders);
+      
+      // Filter orders: only keep orders from the current "day cycle" (starting at 6 AM)
+      const now = new Date();
+      const last6AM = new Date(now);
+      last6AM.setHours(6, 0, 0, 0);
+      if (now.getHours() < 6) {
+        last6AM.setDate(last6AM.getDate() - 1);
+      }
+      
+      const filteredOrders = parsedOrders.filter(o => o.timestamp >= last6AM.getTime());
+      setOrders(filteredOrders);
+      if (filteredOrders.length !== parsedOrders.length) {
+        localStorage.setItem('shinhyup_orders', JSON.stringify(filteredOrders));
+      }
     }
     
     // Set default arrival time to current time + 10 mins
@@ -52,6 +66,16 @@ export default function App() {
     const mins = String(now.getMinutes()).padStart(2, '0');
     setArrivalTime(`${hours}:${mins}`);
   }, []);
+
+  // Timer to force re-render for the 12s cancellation window
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const pendingCount = orders.filter(o => o.status === 'pending').length;
+  const completedCount = orders.filter(o => o.status === 'completed').length;
 
   const saveOrder = (newOrder: Order) => {
     const updatedOrders = [newOrder, ...orders];
@@ -203,10 +227,27 @@ export default function App() {
         </div>
         <button 
           onClick={() => setView(view === 'order' ? 'admin' : 'order')}
-          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all text-sm font-medium"
+          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all text-sm font-medium relative"
         >
           {view === 'order' ? (
-            <><LayoutDashboard size={18} /> 관리자</>
+            <>
+              <LayoutDashboard size={18} /> 
+              관리자
+              {(pendingCount > 0 || completedCount > 0) && (
+                <div className="absolute -top-1 -right-1 flex gap-0.5">
+                  {pendingCount > 0 && (
+                    <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-shinhyup-blue">
+                      {pendingCount}
+                    </span>
+                  )}
+                  {completedCount > 0 && (
+                    <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-blue-500 px-1 text-[10px] font-bold text-white ring-2 ring-shinhyup-blue">
+                      {completedCount}
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <><Coffee size={18} /> 주문하기</>
           )}
@@ -558,33 +599,52 @@ export default function App() {
                   <motion.div 
                     layout
                     key={order.id}
-                    className="glass-card p-6 rounded-3xl flex justify-between items-start gap-4"
+                    className={cn(
+                      "glass-card p-6 rounded-3xl flex justify-between items-start gap-4 transition-opacity",
+                      order.status === 'cancelled' && "opacity-50 grayscale"
+                    )}
                   >
                     <div className="space-y-3 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-lg">{order.nickname}</span>
+                        <span className={cn(
+                          "font-bold text-lg",
+                          order.status === 'cancelled' && "line-through text-slate-400"
+                        )}>
+                          {order.nickname}
+                        </span>
                         <span className="text-xs text-slate-400">
                           {new Date(order.timestamp).toLocaleTimeString()}
                         </span>
+                        {order.status === 'cancelled' && (
+                          <span className="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">취소됨</span>
+                        )}
                       </div>
                       
                       <div className="space-y-1.5">
                         {order.items.map((item) => (
                           <div key={item.id} className="flex items-center gap-2">
-                            <h3 className="text-base font-bold text-shinhyup-blue">
+                            <h3 className={cn(
+                              "text-base font-bold text-shinhyup-blue",
+                              order.status === 'cancelled' && "line-through text-slate-400"
+                            )}>
                               {item.name}
                             </h3>
                             <div className="flex gap-1">
                               {item.option && (
                                 <span className={cn(
                                   "px-1.5 py-0.5 rounded text-[10px] font-bold",
-                                  item.option === 'HOT' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                                  order.status === 'cancelled' 
+                                    ? "bg-slate-100 text-slate-400" 
+                                    : (item.option === 'HOT' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600')
                                 )}>
                                   {item.option}
                                 </span>
                               )}
                               {item.shotOption && item.shotOption !== '기본' && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                <span className={cn(
+                                  "px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600",
+                                  order.status === 'cancelled' && "text-slate-400"
+                                )}>
                                   {item.shotOption}
                                 </span>
                               )}
@@ -604,28 +664,46 @@ export default function App() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
+                      {(() => {
+                        const canCancel = Date.now() - order.timestamp < 15000;
+                        const isCancelled = order.status === 'cancelled';
+                        
+                        return (
+                          <button 
+                            disabled={!canCancel || isCancelled}
+                            onClick={() => {
+                              const updated = orders.map(o => o.id === order.id ? {...o, status: 'cancelled'} : o);
+                              setOrders(updated as Order[]);
+                              localStorage.setItem('shinhyup_orders', JSON.stringify(updated));
+                            }}
+                            className={cn(
+                              "p-2 transition-colors relative group",
+                              (canCancel && !isCancelled) ? "text-slate-300 hover:text-red-500" : "text-slate-100 cursor-not-allowed"
+                            )}
+                          >
+                            <Trash2 size={20} />
+                            {canCancel && !isCancelled && (
+                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                {Math.ceil((15000 - (Date.now() - order.timestamp)) / 1000)}초 남음
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })()}
                       <button 
-                        onClick={() => {
-                          const updated = orders.filter(o => o.id !== order.id);
-                          setOrders(updated);
-                          localStorage.setItem('shinhyup_orders', JSON.stringify(updated));
-                        }}
-                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                      <button 
+                        disabled={order.status === 'cancelled'}
                         className={cn(
                           "px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                          order.status === 'pending' ? "bg-shinhyup-yellow text-shinhyup-blue" : "bg-green-100 text-green-600"
+                          order.status === 'pending' ? "bg-shinhyup-yellow text-shinhyup-blue" : 
+                          order.status === 'completed' ? "bg-green-100 text-green-600" : "bg-slate-100 text-slate-400"
                         )}
                         onClick={() => {
                           const updated = orders.map(o => o.id === order.id ? {...o, status: o.status === 'pending' ? 'completed' : 'pending'} : o);
-                          setOrders(updated);
+                          setOrders(updated as Order[]);
                           localStorage.setItem('shinhyup_orders', JSON.stringify(updated));
                         }}
                       >
-                        {order.status === 'pending' ? '준비중' : '완료됨'}
+                        {order.status === 'pending' ? '준비중' : order.status === 'completed' ? '완료됨' : '취소됨'}
                       </button>
                     </div>
                   </motion.div>
