@@ -256,6 +256,11 @@ export default function App() {
                       placeholder="닉네임 (예: 홍길동 대리)"
                       value={nickname}
                       onChange={(e) => setNickname(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && nickname.trim()) {
+                          setStep(2);
+                        }
+                      }}
                       className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-shinhyup-blue outline-none text-lg"
                     />
                   </div>
@@ -404,9 +409,6 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
                           <Clock size={16} className="text-shinhyup-blue" /> 도착 예정 시간
-                          <span className="text-[10px] text-slate-400 font-normal ml-auto">
-                            시계 아이콘을 눌러 시간을 조절할 수 있습니다
-                          </span>
                         </label>
                         <span className="text-[10px] text-slate-400 font-medium">
                           현재 시각: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
