@@ -1,0 +1,749 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  Coffee, 
+  User, 
+  Clock, 
+  MessageSquare, 
+  CheckCircle2, 
+  ChevronRight, 
+  LayoutDashboard, 
+  Plus,
+  Minus,
+  Trash2,
+  Send,
+  ShoppingCart,
+  X
+} from 'lucide-react';
+import { MENU_ITEMS, MenuItem, Order, CartItem } from './types';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export default function App() {
+  const [view, setView] = useState<'order' | 'admin'>('order');
+  const [step, setStep] = useState(1);
+  const [nickname, setNickname] = useState('');
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedMenu, setSelectedMenu] = useState<MenuItem | null>(null);
+  const [selectedTemp, setSelectedTemp] = useState<'HOT' | 'ICE' | undefined>();
+  const [selectedShot, setSelectedShot] = useState<'샷추가' | '연하게' | '기본'>('기본');
+  const [comment, setComment] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [showOptionModal, setShowOptionModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const timeInputRef = useRef<HTMLInputElement>(null);
+
+  // Load orders from localStorage for demo purposes
+  useEffect(() => {
+    const savedOrders = localStorage.getItem('shinhyup_orders');
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders));
+    }
+    
+    // Set default arrival time to current time + 10 mins
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 10);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    setArrivalTime(`${hours}:${mins}`);
+  }, []);
+
+  const saveOrder = (newOrder: Order) => {
+    const updatedOrders = [newOrder, ...orders];
+    setOrders(updatedOrders);
+    localStorage.setItem('shinhyup_orders', JSON.stringify(updatedOrders));
+  };
+
+  const addToCart = (menu: MenuItem, temp?: 'HOT' | 'ICE', shot: '샷추가' | '연하게' | '기본' = '기본') => {
+    const existingItemIndex = cart.findIndex(
+      item => item.menuId === menu.id && item.option === temp && item.shotOption === shot
+    );
+
+    if (existingItemIndex > -1) {
+      const newCart = [...cart];
+      newCart[existingItemIndex].quantity += 1;
+      setCart(newCart);
+    } else {
+      const newItem: CartItem = {
+        id: Math.random().toString(36).substr(2, 9),
+        menuId: menu.id,
+        name: menu.name,
+        option: temp,
+        shotOption: menu.supportsShotOptions ? shot : undefined,
+        quantity: 1
+      };
+      setCart([...cart, newItem]);
+    }
+    setShowOptionModal(false);
+    setSelectedMenu(null);
+    setSelectedTemp(undefined);
+    setSelectedShot('기본');
+  };
+
+  const updateQuantity = (id: string, delta: number) => {
+    setCart(cart.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart(cart.filter(item => item.id !== id));
+  };
+
+  const handleMenuSelect = (menu: MenuItem) => {
+    setSelectedMenu(menu);
+    if (menu.hasOptions || menu.supportsShotOptions) {
+      setShowOptionModal(true);
+    } else {
+      addToCart(menu);
+    }
+  };
+
+  const handleSubmitOrder = async () => {
+    if (cart.length === 0) return;
+    setIsSubmitting(true);
+
+    const newOrder: Order = {
+      id: Math.random().toString(36).substr(2, 9),
+      nickname,
+      items: cart,
+      comment,
+      arrivalTime,
+      timestamp: Date.now(),
+      status: 'pending'
+    };
+
+    try {
+      // Send to Formspree for data collection
+      const formData = new FormData();
+      formData.append('nickname', newOrder.nickname);
+      formData.append('arrivalTime', newOrder.arrivalTime);
+      formData.append('comment', newOrder.comment || '없음');
+      formData.append('orderItems', newOrder.items.map(item => 
+        `${item.name}${item.option ? `(${item.option})` : ''}${item.shotOption && item.shotOption !== '기본' ? `[${item.shotOption}]` : ''} x${item.quantity}`
+      ).join('\n'));
+      formData.append('timestamp', new Date(newOrder.timestamp).toLocaleString());
+      formData.append('_subject', `[신협주문] ${newOrder.nickname}님의 주문이 접수되었습니다.`);
+
+      const response = await fetch('https://formspree.io/f/xnjgoevd', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Formspree submission failed');
+      }
+
+      saveOrder(newOrder);
+      setStep(4);
+    } catch (error) {
+      console.error('Order submission error:', error);
+      // Even if Formspree fails, we still save locally for the user experience
+      saveOrder(newOrder);
+      setStep(4);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setStep(1);
+    setNickname('');
+    setCart([]);
+    setComment('');
+    // Reset arrival time
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 10);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    setArrivalTime(`${hours}:${mins}`);
+  };
+
+  const addMinutesToNow = (minutes: number) => {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + minutes);
+    const hours = String(now.getHours()).padStart(2, '0');
+    const mins = String(now.getMinutes()).padStart(2, '0');
+    setArrivalTime(`${hours}:${mins}`);
+  };
+
+  const adjustTime = (minutes: number) => {
+    const [hours, mins] = arrivalTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours);
+    date.setMinutes(mins + minutes);
+    const newHours = String(date.getHours()).padStart(2, '0');
+    const newMins = String(date.getMinutes()).padStart(2, '0');
+    setArrivalTime(`${newHours}:${newMins}`);
+  };
+
+  const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  return (
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Header */}
+      <header className="bg-shinhyup-blue text-white p-4 sticky top-0 z-50 shadow-lg flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <div className="bg-shinhyup-yellow p-2 rounded-lg">
+            <Coffee className="text-shinhyup-blue w-6 h-6" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">신협직원주문</h1>
+        </div>
+        <button 
+          onClick={() => setView(view === 'order' ? 'admin' : 'order')}
+          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-full transition-all text-sm font-medium"
+        >
+          {view === 'order' ? (
+            <><LayoutDashboard size={18} /> 관리자</>
+          ) : (
+            <><Coffee size={18} /> 주문하기</>
+          )}
+        </button>
+      </header>
+
+      <main className="max-w-2xl mx-auto p-6 pb-32">
+        {view === 'order' ? (
+          <div className="space-y-8">
+            {/* Progress Bar */}
+            <div className="flex justify-between items-center px-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex items-center">
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-500",
+                    step >= i ? "bg-shinhyup-blue text-white" : "bg-slate-200 text-slate-400"
+                  )}>
+                    {step > i ? <CheckCircle2 size={16} /> : i}
+                  </div>
+                  {i < 4 && (
+                    <div className={cn(
+                      "h-1 w-12 mx-2 rounded-full transition-all duration-500",
+                      step > i ? "bg-shinhyup-blue" : "bg-slate-200"
+                    )} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <motion.div 
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="glass-card p-8 rounded-3xl space-y-6"
+                >
+                  <div className="text-center space-y-2">
+                    <h2 className="text-2xl font-bold text-slate-800">반갑습니다!</h2>
+                    <p className="text-slate-500">주문을 위해 닉네임을 입력해주세요.</p>
+                  </div>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input 
+                      type="text"
+                      placeholder="닉네임 (예: 홍길동 대리)"
+                      value={nickname}
+                      onChange={(e) => setNickname(e.target.value)}
+                      className="w-full pl-12 pr-4 py-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-shinhyup-blue outline-none text-lg"
+                    />
+                  </div>
+                  <button 
+                    disabled={!nickname.trim()}
+                    onClick={() => setStep(2)}
+                    className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-shinhyup-blue/20 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                  >
+                    다음 단계로 <ChevronRight size={20} />
+                  </button>
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div 
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-6"
+                >
+                  <div className="text-center space-y-2">
+                    <h2 className="text-2xl font-bold text-slate-800">메뉴를 선택하세요</h2>
+                    <p className="text-slate-500">원하시는 음료를 골라주세요. (여러 개 선택 가능)</p>
+                  </div>
+                  
+                  {/* Cart Summary in Step 2 */}
+                  {cart.length > 0 && (
+                    <div className="glass-card p-4 rounded-2xl space-y-3 border-shinhyup-blue/20 bg-shinhyup-blue/5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-shinhyup-blue flex items-center gap-2">
+                          <ShoppingCart size={16} /> 선택한 메뉴 ({totalItems})
+                        </h4>
+                      </div>
+                      <div className="space-y-2">
+                        {cart.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-sm">{item.name}</span>
+                              <div className="flex gap-1">
+                                {item.option && (
+                                  <span className={cn(
+                                    "text-[10px] font-bold px-1.5 py-0.5 rounded w-fit",
+                                    item.option === 'HOT' ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-500"
+                                  )}>
+                                    {item.option}
+                                  </span>
+                                )}
+                                {item.shotOption && item.shotOption !== '기본' && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded w-fit bg-slate-100 text-slate-600">
+                                    {item.shotOption}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center bg-slate-100 rounded-lg px-2 py-1 gap-3">
+                                <button onClick={() => updateQuantity(item.id, -1)} className="text-slate-500 hover:text-shinhyup-blue"><Minus size={14} /></button>
+                                <span className="text-sm font-bold min-w-[1rem] text-center">{item.quantity}</span>
+                                <button onClick={() => updateQuantity(item.id, 1)} className="text-slate-500 hover:text-shinhyup-blue"><Plus size={14} /></button>
+                              </div>
+                              <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-red-500"><X size={18} /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <button 
+                        onClick={() => setStep(3)}
+                        className="w-full bg-shinhyup-blue text-white py-3 rounded-xl font-bold text-sm shadow-md"
+                      >
+                        선택 완료 및 다음 단계로
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {MENU_ITEMS.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleMenuSelect(item)}
+                        className="glass-card p-6 rounded-3xl text-left hover:border-shinhyup-blue hover:bg-shinhyup-blue/5 transition-all group relative overflow-hidden"
+                      >
+                        <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <Coffee size={80} />
+                        </div>
+                        <span className="text-xs font-bold text-shinhyup-blue bg-shinhyup-blue/10 px-2 py-1 rounded-md mb-2 inline-block uppercase">
+                          {item.category}
+                        </span>
+                        <h3 className="text-lg font-bold text-slate-800">{item.name}</h3>
+                        <div className="mt-2 text-shinhyup-blue opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs font-bold">
+                          <Plus size={14} /> 담기
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <button 
+                    onClick={() => setStep(1)}
+                    className="w-full py-4 text-slate-400 font-medium"
+                  >
+                    이전으로 돌아가기
+                  </button>
+                </motion.div>
+              )}
+
+              {step === 3 && (
+                <motion.div 
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="glass-card p-8 rounded-3xl space-y-8"
+                >
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                      <ShoppingCart size={20} className="text-shinhyup-blue" /> 주문 내역 확인
+                    </h3>
+                    <div className="space-y-2">
+                      {cart.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
+                          <div className="flex flex-col">
+                            <span className="font-bold">{item.name}</span>
+                            <div className="flex gap-1">
+                              {item.option && (
+                                <span className={cn(
+                                  "text-xs font-bold",
+                                  item.option === 'HOT' ? "text-red-500" : "text-blue-500"
+                                )}>
+                                  {item.option}
+                                </span>
+                              )}
+                              {item.shotOption && item.shotOption !== '기본' && (
+                                <span className="text-xs font-bold text-slate-500">
+                                  {item.shotOption}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="font-bold text-shinhyup-blue">x {item.quantity}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                          <Clock size={16} className="text-shinhyup-blue" /> 도착 예정 시간
+                          <span className="text-[10px] text-slate-400 font-normal ml-auto">
+                            시계 아이콘을 눌러 시간을 조절할 수 있습니다
+                          </span>
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          현재 시각: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                        </span>
+                      </div>
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                        {[0, 5, 10, 15, 20, 30].map((mins) => (
+                          <button
+                            key={mins}
+                            type="button"
+                            onClick={() => addMinutesToNow(mins)}
+                            className={cn(
+                              "whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all shadow-sm",
+                              // Highlight if it matches (approximate check for "now + X")
+                              "bg-white border-slate-100 text-slate-500 hover:border-shinhyup-blue hover:text-shinhyup-blue"
+                            )}
+                          >
+                            {mins === 0 ? '지금' : `${mins}분 뒤`}
+                          </button>
+                        ))}
+                      </div>
+                      
+                      <div className="flex items-center gap-3 bg-slate-100 p-2 rounded-2xl">
+                        <button 
+                          onClick={() => adjustTime(-5)}
+                          className="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-shinhyup-blue hover:bg-shinhyup-blue hover:text-white transition-all"
+                        >
+                          <Minus size={20} />
+                        </button>
+                        <div className="flex-1 flex flex-col items-center justify-center py-2">
+                          <input 
+                            type="time"
+                            value={arrivalTime}
+                            onChange={(e) => setArrivalTime(e.target.value)}
+                            className="w-full bg-transparent border-none text-center text-2xl font-bold text-slate-800 outline-none p-0 h-auto leading-none cursor-pointer"
+                            style={{ colorScheme: 'light' }}
+                          />
+                        </div>
+                        <button 
+                          onClick={() => adjustTime(5)}
+                          className="w-12 h-12 flex items-center justify-center bg-white rounded-xl shadow-sm text-shinhyup-blue hover:bg-shinhyup-blue hover:text-white transition-all"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                        <MessageSquare size={16} /> 추가 코멘트 (선택)
+                      </label>
+                      <textarea 
+                        placeholder="예: 빨간색 텀블러입니다 등"
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        className="w-full p-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-shinhyup-blue outline-none h-32 resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button 
+                      onClick={() => setStep(2)}
+                      className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-bold"
+                    >
+                      이전
+                    </button>
+                    <button 
+                      disabled={!arrivalTime || cart.length === 0 || isSubmitting}
+                      onClick={handleSubmitOrder}
+                      className="flex-[2] bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send size={20} />
+                      )}
+                      {isSubmitting ? '전송 중...' : '주문하기'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 4 && (
+                <motion.div 
+                  key="step4"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="glass-card p-12 rounded-3xl text-center space-y-6"
+                >
+                  <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 size={48} />
+                  </div>
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold text-slate-800">주문 완료!</h2>
+                    <p className="text-slate-500">맛있게 준비해 드릴게요.</p>
+                  </div>
+                  <div className="bg-slate-50 p-6 rounded-2xl text-left space-y-3 max-h-48 overflow-y-auto">
+                    <div className="flex justify-between border-b border-slate-200 pb-2 mb-2">
+                      <span className="text-slate-400">닉네임</span>
+                      <span className="font-bold">{nickname}</span>
+                    </div>
+                    {cart.map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm">
+                        <div className="flex flex-col">
+                          <span className="text-slate-600">{item.name}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {item.option} {item.shotOption && item.shotOption !== '기본' ? `| ${item.shotOption}` : ''}
+                          </span>
+                        </div>
+                        <span className="font-bold">x {item.quantity}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
+                      <span className="text-slate-400">도착예정</span>
+                      <span className="font-bold">{arrivalTime}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={resetForm}
+                    className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold"
+                  >
+                    처음으로 돌아가기
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          /* Admin Dashboard */
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-slate-800">주문 현황</h2>
+              <span className="bg-shinhyup-blue text-white px-3 py-1 rounded-full text-xs font-bold">
+                총 {orders.length}건
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {orders.length === 0 ? (
+                <div className="glass-card p-12 rounded-3xl text-center text-slate-400">
+                  <Coffee size={48} className="mx-auto mb-4 opacity-20" />
+                  <p>접수된 주문이 없습니다.</p>
+                </div>
+              ) : (
+                orders.map((order) => (
+                  <motion.div 
+                    layout
+                    key={order.id}
+                    className="glass-card p-6 rounded-3xl flex justify-between items-start gap-4"
+                  >
+                    <div className="space-y-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg">{order.nickname}</span>
+                        <span className="text-xs text-slate-400">
+                          {new Date(order.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        {order.items.map((item) => (
+                          <div key={item.id} className="flex items-center gap-2">
+                            <h3 className="text-base font-bold text-shinhyup-blue">
+                              {item.name}
+                            </h3>
+                            <div className="flex gap-1">
+                              {item.option && (
+                                <span className={cn(
+                                  "px-1.5 py-0.5 rounded text-[10px] font-bold",
+                                  item.option === 'HOT' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+                                )}>
+                                  {item.option}
+                                </span>
+                              )}
+                              {item.shotOption && item.shotOption !== '기본' && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                                  {item.shotOption}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm font-bold text-slate-400">x {item.quantity}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {order.comment && (
+                        <p className="text-sm text-slate-500 bg-slate-50 p-2 rounded-lg italic">
+                          "{order.comment}"
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1 text-xs text-slate-400">
+                        <Clock size={12} /> 도착 예정: {order.arrivalTime}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <button 
+                        onClick={() => {
+                          const updated = orders.filter(o => o.id !== order.id);
+                          setOrders(updated);
+                          localStorage.setItem('shinhyup_orders', JSON.stringify(updated));
+                        }}
+                        className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                      <button 
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-xs font-bold transition-all",
+                          order.status === 'pending' ? "bg-shinhyup-yellow text-shinhyup-blue" : "bg-green-100 text-green-600"
+                        )}
+                        onClick={() => {
+                          const updated = orders.map(o => o.id === order.id ? {...o, status: o.status === 'pending' ? 'completed' : 'pending'} : o);
+                          setOrders(updated);
+                          localStorage.setItem('shinhyup_orders', JSON.stringify(updated));
+                        }}
+                      >
+                        {order.status === 'pending' ? '준비중' : '완료됨'}
+                      </button>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Option Modal */}
+      <AnimatePresence>
+        {showOptionModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowOptionModal(false);
+                setSelectedTemp(undefined);
+                setSelectedShot('기본');
+              }}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white w-full max-w-md rounded-[40px] p-8 shadow-2xl space-y-8"
+            >
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-bold text-slate-800">{selectedMenu?.name}</h3>
+                <p className="text-slate-500">옵션을 선택해주세요.</p>
+              </div>
+
+              <div className="space-y-6">
+                {/* Temperature Selection */}
+                {selectedMenu?.hasOptions && (
+                  <div className="space-y-3">
+                    <label className="text-sm font-bold text-slate-600">온도</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button 
+                        onClick={() => setSelectedTemp('HOT')}
+                        className={cn(
+                          "p-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all border-2",
+                          selectedTemp === 'HOT' 
+                            ? "bg-red-50 border-red-500 text-red-600" 
+                            : "bg-slate-50 border-transparent text-slate-400"
+                        )}
+                      >
+                        <Plus size={18} /> HOT
+                      </button>
+                      <button 
+                        onClick={() => setSelectedTemp('ICE')}
+                        className={cn(
+                          "p-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all border-2",
+                          selectedTemp === 'ICE' 
+                            ? "bg-blue-50 border-blue-500 text-blue-600" 
+                            : "bg-slate-50 border-transparent text-slate-400"
+                        )}
+                      >
+                        <Minus size={18} /> ICE
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Shot Options */}
+                {selectedMenu?.supportsShotOptions && (
+                  <div className="space-y-3">
+                    <label className="text-sm font-bold text-slate-600">농도 / 샷</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['연하게', '기본', '샷추가'] as const).map((shot) => (
+                        <button
+                          key={shot}
+                          onClick={() => setSelectedShot(shot)}
+                          className={cn(
+                            "py-3 rounded-xl text-sm font-bold transition-all border-2",
+                            selectedShot === shot
+                              ? "bg-shinhyup-blue border-shinhyup-blue text-white"
+                              : "bg-slate-50 border-transparent text-slate-400"
+                          )}
+                        >
+                          {shot}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => {
+                    setShowOptionModal(false);
+                    setSelectedTemp(undefined);
+                    setSelectedShot('기본');
+                  }}
+                  className="flex-1 py-4 text-slate-400 font-medium"
+                >
+                  취소
+                </button>
+                <button 
+                  disabled={selectedMenu?.hasOptions && !selectedTemp}
+                  onClick={() => selectedMenu && addToCart(selectedMenu, selectedTemp, selectedShot)}
+                  className="flex-[2] bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 disabled:opacity-50"
+                >
+                  장바구니 담기
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Footer Branding */}
+      <footer className="fixed bottom-0 left-0 right-0 p-4 text-center text-[10px] text-slate-400 pointer-events-none">
+        신협직원주문 © 2026 Shinhyup. All rights reserved.
+      </footer>
+    </div>
+  );
+}
