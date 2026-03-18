@@ -665,7 +665,7 @@ export default function App() {
                     </div>
                     <div className="flex flex-col gap-2">
                       {(() => {
-                        const canCancel = Date.now() - order.timestamp < 15000;
+                        const canCancel = Date.now() - order.timestamp < 10000;
                         const isCancelled = order.status === 'cancelled';
                         
                         return (
@@ -684,7 +684,7 @@ export default function App() {
                             <Trash2 size={20} />
                             {canCancel && !isCancelled && (
                               <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[8px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                {Math.ceil((15000 - (Date.now() - order.timestamp)) / 1000)}초 남음
+                                {Math.ceil((10000 - (Date.now() - order.timestamp)) / 1000)}초 남음
                               </span>
                             )}
                           </button>
