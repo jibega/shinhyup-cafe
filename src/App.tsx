@@ -463,55 +463,55 @@ function AppContent() {
                           exit={{ opacity: 0, y: -20 }}
                           className="mb-6"
                         >
-                          <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 p-5 space-y-4">
+                          <div className="bg-white rounded-[28px] shadow-2xl border border-slate-100 p-4 space-y-3">
                             <div className="flex items-center justify-between px-1">
-                              <h3 className="text-lg font-bold text-[#1E5BA3] flex items-center gap-2">
-                                <ShoppingCart size={20} strokeWidth={2.5} /> 선택한 메뉴 ({totalItems})
+                              <h3 className="text-base font-bold text-[#1E5BA3] flex items-center gap-2">
+                                <ShoppingCart size={18} strokeWidth={2.5} /> 선택한 메뉴 ({totalItems})
                               </h3>
                             </div>
 
-                            <div className="max-h-60 overflow-y-auto space-y-2.5 pr-1 custom-scrollbar">
+                            <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                               {cart.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-50 shadow-sm">
+                                <div key={item.id} className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-50 shadow-sm">
                                   <div className="flex flex-col">
-                                    <span className="text-lg font-bold text-slate-800 leading-tight">{item.name}</span>
-                                    <div className="flex gap-1 mt-1.5">
+                                    <span className="text-base font-bold text-slate-800 leading-tight">{item.name}</span>
+                                    <div className="flex gap-1 mt-1">
                                       {item.option && (
                                         <span className={cn(
-                                          "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                          "text-[9px] font-bold px-1.5 py-0.5 rounded",
                                           item.option === 'HOT' ? "bg-red-50 text-red-500 border border-red-100" : "bg-blue-50 text-blue-500 border border-blue-100"
                                         )}>
                                           {item.option}
                                         </span>
                                       )}
                                       {item.shotOption && item.shotOption !== '기본' && (
-                                        <span className="text-[10px] font-bold bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded border border-slate-100">
+                                        <span className="text-[9px] font-bold bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded border border-slate-100">
                                           {item.shotOption}
                                         </span>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-3">
-                                    <div className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="flex items-center gap-2.5 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, -1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Minus size={12} strokeWidth={3} />
+                                        <Minus size={10} strokeWidth={3} />
                                       </button>
-                                      <span className="font-bold text-slate-800 min-w-[1rem] text-center text-sm">{item.quantity}</span>
+                                      <span className="font-bold text-slate-800 min-w-[0.8rem] text-center text-xs">{item.quantity}</span>
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, 1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Plus size={12} strokeWidth={3} />
+                                        <Plus size={10} strokeWidth={3} />
                                       </button>
                                     </div>
                                     <button 
                                       onClick={() => removeFromCart(item.id)}
                                       className="text-slate-200 hover:text-red-500 transition-colors"
                                     >
-                                      <X size={20} strokeWidth={1.5} />
+                                      <X size={18} strokeWidth={1.5} />
                                     </button>
                                   </div>
                                 </div>
@@ -520,7 +520,7 @@ function AppContent() {
 
                             <button 
                               onClick={() => setStep(3)}
-                              className="w-full bg-[#004792] text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 text-lg"
+                              className="w-full bg-[#004792] text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 text-base"
                             >
                               선택 완료 및 다음 단계로
                             </button>
