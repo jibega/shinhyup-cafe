@@ -497,103 +497,7 @@ function AppContent() {
                     )}
                   </div>
 
-                  {/* Floating Bottom Cart for Mobile */}
-                  <AnimatePresence>
-                    {cart.length > 0 && (
-                      <motion.div 
-                        initial={{ y: 100 }}
-                        animate={{ y: 0 }}
-                        exit={{ y: 100 }}
-                        className="fixed bottom-6 left-6 right-6 z-40 md:hidden"
-                      >
-                        <div className="bg-shinhyup-blue text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between gap-4">
-                          <button 
-                            onClick={() => setShowCartDrawer(!showCartDrawer)}
-                            className="flex items-center gap-3 flex-1"
-                          >
-                            <div className="bg-white/20 p-2 rounded-xl relative">
-                              <ShoppingCart size={20} />
-                              <span className="absolute -top-2 -right-2 bg-shinhyup-yellow text-shinhyup-blue text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-shinhyup-blue">
-                                {totalItems}
-                              </span>
-                            </div>
-                            <div className="text-left">
-                              <p className="text-[10px] font-medium opacity-80">선택한 메뉴</p>
-                              <p className="text-sm font-bold truncate max-w-[120px]">
-                                {cart[cart.length - 1].name} {cart.length > 1 ? `외 ${cart.length - 1}건` : ''}
-                              </p>
-                            </div>
-                          </button>
-                          <button 
-                            onClick={() => setStep(3)}
-                            className="bg-shinhyup-yellow text-shinhyup-blue px-6 py-3 rounded-2xl font-bold text-sm shadow-lg active:scale-[0.95] transition-transform"
-                          >
-                            주문하기
-                          </button>
-                        </div>
-                        
-                        {/* Mobile Cart Drawer */}
-                        <AnimatePresence>
-                          {showCartDrawer && (
-                            <>
-                              <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowCartDrawer(false)}
-                                className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm -z-10"
-                              />
-                              <motion.div 
-                                initial={{ y: "100%" }}
-                                animate={{ y: 0 }}
-                                exit={{ y: "100%" }}
-                                className="absolute bottom-20 left-0 right-0 bg-white rounded-3xl p-6 shadow-2xl space-y-4 max-h-[60vh] overflow-y-auto -z-10"
-                              >
-                                <div className="flex items-center justify-between border-b pb-4">
-                                  <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                                    <ShoppingCart size={18} className="text-shinhyup-blue" /> 선택한 메뉴 상세
-                                  </h4>
-                                  <button onClick={() => setShowCartDrawer(false)} className="text-slate-400"><X size={20} /></button>
-                                </div>
-                                <div className="space-y-3">
-                                  {cart.map((item) => (
-                                    <div key={item.id} className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl">
-                                      <div className="flex flex-col">
-                                        <span className="font-bold text-sm">{item.name}</span>
-                                        <div className="flex gap-1">
-                                          {item.option && (
-                                            <span className={cn(
-                                              "text-[10px] font-bold px-1.5 py-0.5 rounded w-fit",
-                                              item.option === 'HOT' ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-500"
-                                            )}>
-                                              {item.option}
-                                            </span>
-                                          )}
-                                          {item.shotOption && item.shotOption !== '기본' && (
-                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded w-fit bg-slate-100 text-slate-600">
-                                              {item.shotOption}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-4">
-                                        <div className="flex items-center bg-white rounded-xl px-2 py-1 gap-4 shadow-sm">
-                                          <button onClick={() => updateQuantity(item.id, -1)} className="text-slate-400"><Minus size={16} /></button>
-                                          <span className="text-sm font-bold min-w-[1rem] text-center">{item.quantity}</span>
-                                          <button onClick={() => updateQuantity(item.id, 1)} className="text-slate-400"><Plus size={16} /></button>
-                                        </div>
-                                        <button onClick={() => removeFromCart(item.id)} className="text-red-400"><Trash2 size={18} /></button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            </>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {/* Removed Floating Bottom Cart for Mobile as requested */}
 
                   <div className="grid grid-cols-2 gap-4">
                     {MENU_ITEMS.map((item) => {
@@ -738,6 +642,12 @@ function AppContent() {
                         placeholder="예: 빨간색 텀블러입니다 등"
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSubmitOrder();
+                          }
+                        }}
                         className="w-full p-4 bg-slate-100 border-none rounded-2xl focus:ring-2 focus:ring-shinhyup-blue outline-none h-32 resize-none"
                       />
                     </div>
