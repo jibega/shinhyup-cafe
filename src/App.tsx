@@ -463,61 +463,55 @@ function AppContent() {
                           exit={{ opacity: 0, y: -20 }}
                           className="mb-6"
                         >
-                          <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 p-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <h3 className="text-lg font-bold text-shinhyup-blue flex items-center gap-2">
-                                <ShoppingCart size={20} /> 선택한 메뉴 ({totalItems})
+                          <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 p-6 space-y-5">
+                            <div className="flex items-center justify-between px-1">
+                              <h3 className="text-xl font-extrabold text-[#1E5BA3] flex items-center gap-2">
+                                <ShoppingCart size={22} strokeWidth={2.5} /> 선택한 메뉴 ({totalItems})
                               </h3>
-                              <button 
-                                onClick={() => setCart([])}
-                                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
-                              >
-                                전체 삭제
-                              </button>
                             </div>
 
-                            <div className="max-h-60 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                            <div className="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
                               {cart.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                                <div key={item.id} className="flex items-center justify-between p-5 bg-white rounded-2xl border border-slate-50 shadow-sm">
                                   <div className="flex flex-col">
-                                    <span className="text-lg font-bold text-slate-800 leading-tight">{item.name}</span>
-                                    <div className="flex gap-1 mt-1">
+                                    <span className="text-xl font-black text-slate-800 leading-tight tracking-tight">{item.name}</span>
+                                    <div className="flex gap-1 mt-2">
                                       {item.option && (
                                         <span className={cn(
-                                          "text-[10px] font-bold px-1.5 py-0.5 rounded",
-                                          item.option === 'HOT' ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                                          "text-[11px] font-bold px-2 py-0.5 rounded",
+                                          item.option === 'HOT' ? "bg-red-50 text-red-500 border border-red-100" : "bg-blue-50 text-blue-500 border border-blue-100"
                                         )}>
                                           {item.option}
                                         </span>
                                       )}
                                       {item.shotOption && item.shotOption !== '기본' && (
-                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
+                                        <span className="text-[11px] font-bold bg-slate-50 text-slate-400 px-2 py-0.5 rounded border border-slate-100">
                                           {item.shotOption}
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-full">
+                                    <div className="flex items-center gap-4 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, -1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Minus size={14} />
+                                        <Minus size={12} strokeWidth={3} />
                                       </button>
-                                      <span className="font-bold text-slate-800 min-w-[1rem] text-center text-sm">{item.quantity}</span>
+                                      <span className="font-black text-slate-800 min-w-[1.2rem] text-center text-base">{item.quantity}</span>
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, 1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Plus size={14} />
+                                        <Plus size={12} strokeWidth={3} />
                                       </button>
                                     </div>
                                     <button 
                                       onClick={() => removeFromCart(item.id)}
-                                      className="text-slate-300 hover:text-red-500 transition-colors"
+                                      className="text-slate-200 hover:text-red-500 transition-colors"
                                     >
-                                      <X size={20} />
+                                      <X size={22} strokeWidth={1.5} />
                                     </button>
                                   </div>
                                 </div>
@@ -526,7 +520,7 @@ function AppContent() {
 
                             <button 
                               onClick={() => setStep(3)}
-                              className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 text-lg"
+                              className="w-full bg-[#004792] text-white py-5 rounded-2xl font-black shadow-xl shadow-shinhyup-blue/20 text-xl tracking-tight"
                             >
                               선택 완료 및 다음 단계로
                             </button>
