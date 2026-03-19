@@ -42,7 +42,7 @@ service cloud.firestore {
              data.arrivalTime is string && data.arrivalTime.matches("^\\d{2}:\\d{2}$") &&
              data.timestamp is number &&
              data.status in ['pending', 'completed', 'cancelled'] &&
-             data.uid is string && data.uid == request.auth.uid;
+             data.uid is string && (isAuthenticated() ? data.uid == request.auth.uid : data.uid == 'anonymous');
     }
 
     function isValidStatusUpdate(oldData, newData) {
@@ -56,8 +56,8 @@ service cloud.firestore {
     // ===============================================================
 
     match /orders/{orderId} {
-      // Public read/write access for nickname-based flow
-      allow read, write: if true;
+      // Public access for everything to restore original behavior
+      allow read, create, update, delete: if true;
     }
   }
 }

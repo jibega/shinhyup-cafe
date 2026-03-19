@@ -14,8 +14,7 @@ import {
   Send,
   ShoppingCart,
   X,
-  AlertCircle,
-  LogIn
+  AlertCircle
 } from 'lucide-react';
 import { MENU_ITEMS, MenuItem, Order, CartItem } from './types';
 import { clsx, type ClassValue } from 'clsx';
@@ -30,13 +29,7 @@ import {
   orderBy, 
   where
 } from 'firebase/firestore';
-import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  onAuthStateChanged,
-  User as FirebaseUser
-} from 'firebase/auth';
-import { db, auth, handleFirestoreError, OperationType } from './firebase';
+import { db, handleFirestoreError, OperationType } from './firebase';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -143,7 +136,8 @@ function AppContent() {
       })) as Order[];
       setOrders(fetchedOrders);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'orders');
+      console.error("Firestore onSnapshot error:", error);
+      // Don't throw a fatal error for background sync failures
     });
 
     return () => unsubscribe();
@@ -194,7 +188,7 @@ function AppContent() {
     setSelectedShot('기본');
   };
 
-  const updateQuantity = (id: string, delta: number) => {
+  const updateCartItemQuantity = (id: string, delta: number) => {
     setCart(cart.map(item => {
       if (item.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
@@ -221,6 +215,16 @@ function AppContent() {
     if (cart.length === 0) return;
     setIsSubmitting(true);
 
+    // Ensure arrivalTime is in HH:mm format
+    let finalArrivalTime = arrivalTime;
+    if (!finalArrivalTime || !finalArrivalTime.match(/^\d{2}:\d{2}$/)) {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 10);
+      const hours = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      finalArrivalTime = `${hours}:${mins}`;
+    }
+
     // Sanitize cart items to remove undefined values which Firestore doesn't support
     const sanitizedItems = cart.map(item => {
       const sanitized: any = {
@@ -238,35 +242,41 @@ function AppContent() {
       nickname: nickname || '익명',
       items: sanitizedItems,
       comment: comment || '',
-      arrivalTime: arrivalTime || '미지정',
+      arrivalTime: finalArrivalTime,
       timestamp: Date.now(),
       status: 'pending',
-      uid: auth.currentUser?.uid || 'anonymous'
+      uid: 'anonymous'
     };
 
     try {
       // 1. Save to Firestore
       await addDoc(collection(db, 'orders'), orderData);
 
-      // 2. Send to Formspree
-      const formData = new FormData();
-      formData.append('nickname', orderData.nickname);
-      formData.append('arrivalTime', orderData.arrivalTime);
-      formData.append('comment', orderData.comment || '없음');
-      formData.append('orderItems', orderData.items.map(item => 
-        `${item.name}${item.option ? `(${item.option})` : ''}${item.shotOption && item.shotOption !== '기본' ? `[${item.shotOption}]` : ''} x${item.quantity}`
-      ).join('\n'));
-      formData.append('timestamp', new Date(orderData.timestamp).toLocaleString());
-      formData.append('_subject', `[신협주문] ${orderData.nickname}님의 주문이 접수되었습니다.`);
+      // 2. Send to Formspree (Optional - wrapped in try/catch to prevent crashing on adblockers)
+      try {
+        const formData = new FormData();
+        formData.append('nickname', orderData.nickname);
+        formData.append('arrivalTime', orderData.arrivalTime);
+        formData.append('comment', orderData.comment || '없음');
+        formData.append('orderItems', orderData.items.map(item => 
+          `${item.name}${item.option ? `(${item.option})` : ''}${item.shotOption && item.shotOption !== '기본' ? `[${item.shotOption}]` : ''} x${item.quantity}`
+        ).join('\n'));
+        formData.append('timestamp', new Date(orderData.timestamp).toLocaleString());
+        formData.append('_subject', `[신협주문] ${orderData.nickname}님의 주문이 접수되었습니다.`);
 
-      await fetch('https://formspree.io/f/xnjgoevd', {
-        method: 'POST',
-        body: formData,
-        headers: { 'Accept': 'application/json' }
-      });
+        await fetch('https://formspree.io/f/xnjgoevd', {
+          method: 'POST',
+          body: formData,
+          headers: { 'Accept': 'application/json' }
+        });
+      } catch (formError) {
+        console.warn("Formspree notification failed (likely blocked by adblocker):", formError);
+        // We continue anyway because the order was saved to Firestore
+      }
 
       setStep(4);
     } catch (error) {
+      console.error("Order submission failed:", error);
       handleFirestoreError(error, OperationType.CREATE, 'orders');
     } finally {
       setIsSubmitting(false);
@@ -333,7 +343,7 @@ function AppContent() {
                 <LayoutDashboard size={18} /> 
                 관리자
                 {/* Side-by-side badges on the top right of the button: Blue(Left), Red(Right) */}
-                <div className="absolute -top-2 -right-2 flex gap-0.5">
+                <div className="absolute -top-2 right-0 flex gap-0.5">
                   <AnimatePresence>
                     {completedCount > 0 && (
                       <motion.span 
@@ -441,63 +451,88 @@ function AppContent() {
                     <h2 className="text-2xl font-bold text-slate-800">메뉴를 선택하세요</h2>
                     <p className="text-slate-500">원하시는 음료를 골라주세요. (여러 개 선택 가능)</p>
                   </div>
-                  
-                  {/* Cart Summary in Step 2 */}
-                  <div className="sticky top-[76px] z-30 -mx-6 px-6 py-2 bg-slate-50/90 backdrop-blur-md transition-all">
-                    {cart.length > 0 ? (
-                      <div className="glass-card p-3 md:p-4 rounded-2xl space-y-2 md:space-y-3 border-shinhyup-blue/20 bg-shinhyup-blue/5 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-xs md:text-sm font-bold text-shinhyup-blue flex items-center gap-2">
-                            <ShoppingCart size={14} className="md:w-4 md:h-4" /> 선택한 메뉴 ({totalItems})
-                          </h4>
-                        </div>
-                        <div className="max-h-[120px] md:max-h-[160px] overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                          {cart.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-slate-100">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-sm">{item.name}</span>
-                                <div className="flex gap-1">
-                                  {item.option && (
-                                    <span className={cn(
-                                      "text-[10px] font-bold px-1.5 py-0.5 rounded w-fit",
-                                      item.option === 'HOT' ? "bg-red-50 text-red-500" : "bg-blue-50 text-blue-500"
-                                    )}>
-                                      {item.option}
-                                    </span>
-                                  )}
-                                  {item.shotOption && item.shotOption !== '기본' && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded w-fit bg-slate-100 text-slate-600">
-                                      {item.shotOption}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center bg-slate-100 rounded-lg px-2 py-1 gap-3">
-                                  <button onClick={() => updateQuantity(item.id, -1)} className="text-slate-500 hover:text-shinhyup-blue"><Minus size={14} /></button>
-                                  <span className="text-sm font-bold min-w-[1rem] text-center">{item.quantity}</span>
-                                  <button onClick={() => updateQuantity(item.id, 1)} className="text-slate-500 hover:text-shinhyup-blue"><Plus size={14} /></button>
-                                </div>
-                                <button onClick={() => removeFromCart(item.id)} className="text-slate-300 hover:text-red-500"><X size={18} /></button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <button 
-                          onClick={() => setStep(3)}
-                          className="w-full bg-shinhyup-blue text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-[0.98] transition-transform"
-                        >
-                          선택 완료 및 다음 단계로
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="text-center py-2">
-                        <p className="text-xs text-slate-400 font-medium italic">메뉴를 선택하면 여기에 표시됩니다</p>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Removed Floating Bottom Cart for Mobile as requested */}
+                  {/* Inline Cart Section */}
+                  <AnimatePresence>
+                    {cart.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="bg-white rounded-[32px] shadow-xl border border-slate-100 p-6 space-y-4 mb-6">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-shinhyup-blue flex items-center gap-2">
+                              <ShoppingCart size={20} /> 선택한 메뉴 ({totalItems})
+                            </h3>
+                            <button 
+                              onClick={() => setCart([])}
+                              className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                            >
+                              전체 삭제
+                            </button>
+                          </div>
+
+                          <div className="max-h-48 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
+                            {cart.map((item) => (
+                              <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-slate-800">{item.name}</span>
+                                  <div className="flex gap-1">
+                                    {item.option && (
+                                      <span className={cn(
+                                        "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                        item.option === 'HOT' ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                                      )}>
+                                        {item.option}
+                                      </span>
+                                    )}
+                                    {item.shotOption && item.shotOption !== '기본' && (
+                                      <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                        {item.shotOption}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100">
+                                    <button 
+                                      onClick={() => updateCartItemQuantity(item.id, -1)}
+                                      className="text-slate-400 hover:text-shinhyup-blue transition-colors"
+                                    >
+                                      <Minus size={16} />
+                                    </button>
+                                    <span className="font-bold text-slate-800 min-w-[1rem] text-center">{item.quantity}</span>
+                                    <button 
+                                      onClick={() => updateCartItemQuantity(item.id, 1)}
+                                      className="text-slate-400 hover:text-shinhyup-blue transition-colors"
+                                    >
+                                      <Plus size={16} />
+                                    </button>
+                                  </div>
+                                  <button 
+                                    onClick={() => removeFromCart(item.id)}
+                                    className="text-slate-300 hover:text-red-500 transition-colors"
+                                  >
+                                    <X size={20} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <button 
+                            onClick={() => setStep(3)}
+                            className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 flex items-center justify-center gap-2"
+                          >
+                            선택 완료 및 다음 단계로
+                            <ChevronRight size={20} />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <div className="grid grid-cols-2 gap-4">
                     {MENU_ITEMS.map((item) => {
