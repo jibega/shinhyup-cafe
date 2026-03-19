@@ -330,38 +330,38 @@ function AppContent() {
           >
             {view === 'order' ? (
               <>
-                <div className="relative">
-                  <LayoutDashboard size={18} />
-                  {pendingCount > 0 && (
-                    <motion.span 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      key="pending-badge"
-                      className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm"
-                    >
-                      {pendingCount}
-                    </motion.span>
-                  )}
-                </div>
+                <LayoutDashboard size={18} /> 
                 관리자
+                {/* Side-by-side badges on the top right of the button: Blue(Left), Red(Right) */}
+                <div className="absolute -top-2 -right-2 flex gap-0.5">
+                  <AnimatePresence>
+                    {completedCount > 0 && (
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        key="completed-badge"
+                        className="bg-blue-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm border border-white/20"
+                      >
+                        {completedCount}
+                      </motion.span>
+                    )}
+                    {pendingCount > 0 && (
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0 }}
+                        key="pending-badge"
+                        className="bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm border border-white/20"
+                      >
+                        {pendingCount}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
               </>
             ) : (
-              <>
-                <div className="relative">
-                  <Coffee size={18} />
-                  {completedCount > 0 && (
-                    <motion.span 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      key="completed-badge"
-                      className="absolute -top-2 -right-2 bg-blue-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-sm"
-                    >
-                      {completedCount}
-                    </motion.span>
-                  )}
-                </div>
-                주문하기
-              </>
+              <><Coffee size={18} /> 주문하기</>
             )}
           </button>
         </div>
