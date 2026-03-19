@@ -163,8 +163,9 @@ function AppContent() {
   const completedCount = orders.filter(o => o.status === 'completed').length;
 
   const addToCart = (menu: MenuItem, temp?: 'HOT' | 'ICE', shot: '샷추가' | '연하게' | '기본' = '기본') => {
+    const normalizedShot = menu.supportsShotOptions ? shot : undefined;
     const existingItemIndex = cart.findIndex(
-      item => item.menuId === menu.id && item.option === temp && item.shotOption === shot
+      item => item.menuId === menu.id && item.option === temp && item.shotOption === normalizedShot
     );
 
     if (existingItemIndex > -1) {
@@ -177,7 +178,7 @@ function AppContent() {
         menuId: menu.id,
         name: menu.name,
         option: temp,
-        shotOption: menu.supportsShotOptions ? shot : undefined,
+        shotOption: normalizedShot,
         quantity: 1
       };
       setCart([...cart, newItem]);
@@ -452,87 +453,89 @@ function AppContent() {
                     <p className="text-slate-500">원하시는 음료를 골라주세요. (여러 개 선택 가능)</p>
                   </div>
 
-                  {/* Inline Cart Section */}
-                  <AnimatePresence>
-                    {cart.length > 0 && (
-                      <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="bg-white rounded-[32px] shadow-xl border border-slate-100 p-6 space-y-4 mb-6">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-shinhyup-blue flex items-center gap-2">
-                              <ShoppingCart size={20} /> 선택한 메뉴 ({totalItems})
-                            </h3>
+                  {/* Inline Cart Section (Sticky) */}
+                  <div className="sticky top-0 z-30 pt-4 -mt-4 bg-slate-50/80 backdrop-blur-md">
+                    <AnimatePresence>
+                      {cart.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="bg-white rounded-[32px] shadow-xl border border-slate-100 p-6 space-y-4 mb-6">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-bold text-shinhyup-blue flex items-center gap-2">
+                                <ShoppingCart size={20} /> 선택한 메뉴 ({totalItems})
+                              </h3>
+                              <button 
+                                onClick={() => setCart([])}
+                                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                              >
+                                전체 삭제
+                              </button>
+                            </div>
+
+                            <div className="max-h-48 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                              {cart.map((item) => (
+                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-slate-800">{item.name}</span>
+                                    <div className="flex gap-1">
+                                      {item.option && (
+                                        <span className={cn(
+                                          "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                          item.option === 'HOT' ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
+                                        )}>
+                                          {item.option}
+                                        </span>
+                                      )}
+                                      {item.shotOption && item.shotOption !== '기본' && (
+                                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                          {item.shotOption}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100">
+                                      <button 
+                                        onClick={() => updateCartItemQuantity(item.id, -1)}
+                                        className="text-slate-400 hover:text-shinhyup-blue transition-colors"
+                                      >
+                                        <Minus size={16} />
+                                      </button>
+                                      <span className="font-bold text-slate-800 min-w-[1rem] text-center">{item.quantity}</span>
+                                      <button 
+                                        onClick={() => updateCartItemQuantity(item.id, 1)}
+                                        className="text-slate-400 hover:text-shinhyup-blue transition-colors"
+                                      >
+                                        <Plus size={16} />
+                                      </button>
+                                    </div>
+                                    <button 
+                                      onClick={() => removeFromCart(item.id)}
+                                      className="text-slate-300 hover:text-red-500 transition-colors"
+                                    >
+                                      <X size={20} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
                             <button 
-                              onClick={() => setCart([])}
-                              className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors"
+                              onClick={() => setStep(3)}
+                              className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 flex items-center justify-center gap-2"
                             >
-                              전체 삭제
+                              선택 완료 및 다음 단계로
+                              <ChevronRight size={20} />
                             </button>
                           </div>
-
-                          <div className="max-h-48 overflow-y-auto space-y-3 pr-2 scrollbar-hide">
-                            {cart.map((item) => (
-                              <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-800">{item.name}</span>
-                                  <div className="flex gap-1">
-                                    {item.option && (
-                                      <span className={cn(
-                                        "text-[10px] font-bold px-1.5 py-0.5 rounded",
-                                        item.option === 'HOT' ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"
-                                      )}>
-                                        {item.option}
-                                      </span>
-                                    )}
-                                    {item.shotOption && item.shotOption !== '기본' && (
-                                      <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
-                                        {item.shotOption}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100">
-                                    <button 
-                                      onClick={() => updateCartItemQuantity(item.id, -1)}
-                                      className="text-slate-400 hover:text-shinhyup-blue transition-colors"
-                                    >
-                                      <Minus size={16} />
-                                    </button>
-                                    <span className="font-bold text-slate-800 min-w-[1rem] text-center">{item.quantity}</span>
-                                    <button 
-                                      onClick={() => updateCartItemQuantity(item.id, 1)}
-                                      className="text-slate-400 hover:text-shinhyup-blue transition-colors"
-                                    >
-                                      <Plus size={16} />
-                                    </button>
-                                  </div>
-                                  <button 
-                                    onClick={() => removeFromCart(item.id)}
-                                    className="text-slate-300 hover:text-red-500 transition-colors"
-                                  >
-                                    <X size={20} />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          <button 
-                            onClick={() => setStep(3)}
-                            className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 flex items-center justify-center gap-2"
-                          >
-                            선택 완료 및 다음 단계로
-                            <ChevronRight size={20} />
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     {MENU_ITEMS.map((item) => {
@@ -725,7 +728,7 @@ function AppContent() {
                     <h2 className="text-3xl font-bold text-slate-800">주문 완료!</h2>
                     <p className="text-slate-500">맛있게 준비해 드릴게요.</p>
                   </div>
-                  <div className="bg-slate-50 p-6 rounded-2xl text-left space-y-3 max-h-48 overflow-y-auto">
+                  <div className="bg-slate-50 p-6 rounded-2xl text-left space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
                     <div className="flex justify-between border-b border-slate-200 pb-2 mb-2">
                       <span className="text-slate-400">닉네임</span>
                       <span className="font-bold">{nickname}</span>
