@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A coffee order placed by a staff member.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nickname": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "menuId": { "type": "string" },
+              "name": { "type": "string" },
+              "option": { "type": "string", "enum": ["HOT", "ICE"] },
+              "shotOption": { "type": "string", "enum": ["샷추가", "연하게", "기본"] },
+              "quantity": { "type": "number" }
+            },
+            "required": ["id", "menuId", "name", "quantity"]
+          }
+        },
+        "comment": { "type": "string" },
+        "arrivalTime": { "type": "string" },
+        "timestamp": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"] },
+        "uid": { "type": "string", "description": "The UID of the user who placed the order." }
+      },
+      "required": ["id", "nickname", "items", "arrivalTime", "timestamp", "status", "uid"]
+    }
+  },
+  "firestore": {
+    "orders": {
+      "schema": "Order",
+      "description": "Collection of all coffee orders."
+    }
+  }
+}

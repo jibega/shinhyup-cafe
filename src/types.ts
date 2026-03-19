@@ -23,10 +23,12 @@ export interface Order {
   arrivalTime: string;
   timestamp: number;
   status: 'pending' | 'completed' | 'cancelled';
+  uid: string;
 }
 
 export const MENU_ITEMS: MenuItem[] = [
   { id: '1', name: '아메리카노', hasOptions: true, supportsShotOptions: true, category: 'coffee' },
+  { id: '11', name: '에스프레소', hasOptions: false, supportsShotOptions: true, category: 'coffee' },
   { id: '2', name: '카페라떼', hasOptions: true, supportsShotOptions: true, category: 'coffee' },
   { id: '3', name: '바닐라라떼', hasOptions: true, supportsShotOptions: true, category: 'coffee' },
   { id: '4', name: '카라멜 마끼야또', hasOptions: true, supportsShotOptions: true, category: 'coffee' },
