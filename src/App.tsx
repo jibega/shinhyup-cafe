@@ -454,16 +454,16 @@ function AppContent() {
                   </div>
 
                   {/* Inline Cart Section (Sticky) */}
-                  <div className="sticky top-0 z-30 pt-4 -mt-4 bg-slate-50/80 backdrop-blur-md">
+                  <div className="sticky top-[80px] z-30 pt-2">
                     <AnimatePresence>
                       {cart.length > 0 && (
                         <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden"
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          className="mb-6"
                         >
-                          <div className="bg-white rounded-[32px] shadow-xl border border-slate-100 p-6 space-y-4 mb-6">
+                          <div className="bg-white rounded-[32px] shadow-2xl border border-slate-100 p-6 space-y-4">
                             <div className="flex items-center justify-between">
                               <h3 className="text-lg font-bold text-shinhyup-blue flex items-center gap-2">
                                 <ShoppingCart size={20} /> 선택한 메뉴 ({totalItems})
@@ -476,12 +476,12 @@ function AppContent() {
                               </button>
                             </div>
 
-                            <div className="max-h-48 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                            <div className="max-h-60 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
                               {cart.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
                                   <div className="flex flex-col">
-                                    <span className="font-bold text-slate-800">{item.name}</span>
-                                    <div className="flex gap-1">
+                                    <span className="text-lg font-bold text-slate-800 leading-tight">{item.name}</span>
+                                    <div className="flex gap-1 mt-1">
                                       {item.option && (
                                         <span className={cn(
                                           "text-[10px] font-bold px-1.5 py-0.5 rounded",
@@ -491,26 +491,26 @@ function AppContent() {
                                         </span>
                                       )}
                                       {item.shotOption && item.shotOption !== '기본' && (
-                                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                                        <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">
                                           {item.shotOption}
                                         </span>
                                       )}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100">
+                                    <div className="flex items-center gap-3 bg-slate-100 px-3 py-1.5 rounded-full">
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, -1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Minus size={16} />
+                                        <Minus size={14} />
                                       </button>
-                                      <span className="font-bold text-slate-800 min-w-[1rem] text-center">{item.quantity}</span>
+                                      <span className="font-bold text-slate-800 min-w-[1rem] text-center text-sm">{item.quantity}</span>
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, 1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Plus size={16} />
+                                        <Plus size={14} />
                                       </button>
                                     </div>
                                     <button 
@@ -526,10 +526,9 @@ function AppContent() {
 
                             <button 
                               onClick={() => setStep(3)}
-                              className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 flex items-center justify-center gap-2"
+                              className="w-full bg-shinhyup-blue text-white py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 text-lg"
                             >
                               선택 완료 및 다음 단계로
-                              <ChevronRight size={20} />
                             </button>
                           </div>
                         </motion.div>
