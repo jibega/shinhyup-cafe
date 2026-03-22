@@ -652,7 +652,7 @@ function AppContent() {
                             type="time"
                             value={arrivalTime}
                             onChange={(e) => setArrivalTime(e.target.value)}
-                            className="w-full bg-transparent border-none text-center text-2xl font-bold text-slate-800 outline-none p-0 h-auto leading-none cursor-pointer"
+                            className="w-full bg-transparent border-none text-center text-xl font-bold text-slate-800 outline-none p-0 h-auto leading-none cursor-pointer"
                             style={{ colorScheme: 'light' }}
                           />
                         </div>
