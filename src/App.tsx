@@ -378,7 +378,7 @@ function AppContent() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto p-6 pb-32">
+      <main className="max-w-2xl mx-auto p-4 sm:p-6 pb-32">
         {view === 'order' ? (
           <div className="space-y-8">
             {/* Progress Bar */}
@@ -454,64 +454,64 @@ function AppContent() {
                   </div>
 
                   {/* Inline Cart Section (Sticky) */}
-                  <div className="sticky top-[80px] z-30 pt-2">
+                  <div className="sticky top-[72px] sm:top-[80px] z-30 pt-2">
                     <AnimatePresence>
                       {cart.length > 0 && (
                         <motion.div 
                           initial={{ opacity: 0, y: -20 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -20 }}
-                          className="mb-6"
+                          className="mb-4 sm:mb-6"
                         >
-                          <div className="bg-white rounded-[28px] shadow-2xl border border-slate-100 p-4 space-y-3">
+                          <div className="bg-white rounded-[24px] sm:rounded-[28px] shadow-2xl border border-slate-100 p-3 sm:p-4 space-y-2 sm:space-y-3">
                             <div className="flex items-center justify-between px-1">
-                              <h3 className="text-base font-bold text-[#1E5BA3] flex items-center gap-2">
-                                <ShoppingCart size={18} strokeWidth={2.5} /> 선택한 메뉴 ({totalItems})
+                              <h3 className="text-sm sm:text-base font-bold text-[#1E5BA3] flex items-center gap-2">
+                                <ShoppingCart className="w-4 h-4 sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} /> 선택한 메뉴 ({totalItems})
                               </h3>
                             </div>
 
-                            <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                            <div className="max-h-40 sm:max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                               {cart.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-50 shadow-sm">
+                                <div key={item.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-white rounded-xl sm:rounded-2xl border border-slate-50 shadow-sm">
                                   <div className="flex flex-col">
-                                    <span className="text-base font-bold text-slate-800 leading-tight">{item.name}</span>
-                                    <div className="flex gap-1 mt-1">
+                                    <span className="text-sm sm:text-base font-bold text-slate-800 leading-tight">{item.name}</span>
+                                    <div className="flex gap-1 mt-0.5 sm:mt-1">
                                       {item.option && (
                                         <span className={cn(
-                                          "text-[9px] font-bold px-1.5 py-0.5 rounded",
+                                          "text-[8px] sm:text-[9px] font-bold px-1 sm:px-1.5 py-0.5 rounded",
                                           item.option === 'HOT' ? "bg-red-50 text-red-500 border border-red-100" : "bg-blue-50 text-blue-500 border border-blue-100"
                                         )}>
                                           {item.option}
                                         </span>
                                       )}
                                       {item.shotOption && item.shotOption !== '기본' && (
-                                        <span className="text-[9px] font-bold bg-slate-50 text-slate-400 px-1.5 py-0.5 rounded border border-slate-100">
+                                        <span className="text-[8px] sm:text-[9px] font-bold bg-slate-50 text-slate-400 px-1 sm:px-1.5 py-0.5 rounded border border-slate-100">
                                           {item.shotOption}
                                         </span>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2.5">
-                                    <div className="flex items-center gap-2.5 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-100">
+                                  <div className="flex items-center gap-2 sm:gap-2.5">
+                                    <div className="flex items-center gap-2 sm:gap-2.5 bg-slate-50 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-slate-100">
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, -1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Minus size={10} strokeWidth={3} />
+                                        <Minus className="w-2 h-2 sm:w-2.5 sm:h-2.5" strokeWidth={3} />
                                       </button>
-                                      <span className="font-bold text-slate-800 min-w-[0.8rem] text-center text-xs">{item.quantity}</span>
+                                      <span className="font-bold text-slate-800 min-w-[0.6rem] sm:min-w-[0.8rem] text-center text-[10px] sm:text-xs">{item.quantity}</span>
                                       <button 
                                         onClick={() => updateCartItemQuantity(item.id, 1)}
                                         className="text-slate-400 hover:text-shinhyup-blue transition-colors"
                                       >
-                                        <Plus size={10} strokeWidth={3} />
+                                        <Plus className="w-2 h-2 sm:w-2.5 sm:h-2.5" strokeWidth={3} />
                                       </button>
                                     </div>
                                     <button 
                                       onClick={() => removeFromCart(item.id)}
                                       className="text-slate-200 hover:text-red-500 transition-colors"
                                     >
-                                      <X size={18} strokeWidth={1.5} />
+                                      <X className="w-4 h-4 sm:w-[18px] sm:h-[18px]" strokeWidth={1.5} />
                                     </button>
                                   </div>
                                 </div>
@@ -520,9 +520,9 @@ function AppContent() {
 
                             <button 
                               onClick={() => setStep(3)}
-                              className="w-full bg-[#004792] text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 text-base"
+                              className="w-full bg-[#004792] text-white py-3 sm:py-4 rounded-2xl font-bold shadow-lg shadow-shinhyup-blue/20 text-sm sm:text-base flex items-center justify-center gap-1"
                             >
-                              선택 완료 및 다음 단계로
+                              선택 완료 및 다음 단계로 <ChevronRight size={18} />
                             </button>
                           </div>
                         </motion.div>
@@ -670,7 +670,7 @@ function AppContent() {
                         <MessageSquare size={16} /> 추가 코멘트 (선택)
                       </label>
                       <textarea 
-                        placeholder="예: 빨간색 텀블러입니다 등"
+                        placeholder="예: 샷 3번 추가 등"
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
                         onKeyDown={(e) => {

@@ -38,4 +38,5 @@ export const MENU_ITEMS: MenuItem[] = [
   { id: '8', name: '캐모마일', hasOptions: true, supportsShotOptions: false, category: 'tea' },
   { id: '9', name: '오렌지주스', hasOptions: false, supportsShotOptions: false, category: 'juice' },
   { id: '10', name: '쌍화차', hasOptions: false, supportsShotOptions: false, category: 'etc' },
+  { id: '12', name: '우유', hasOptions: true, supportsShotOptions: false, category: 'etc' },
 ];
